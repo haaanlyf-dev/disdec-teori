@@ -17,13 +17,15 @@ disdec-teori
 ├── 01
 ├── 02
 ├── 03
+│   └── kode
 ├── 04
+│   └── kode
 ├── 05
 ├── 06
 └── README.md
 ```
 
-Setiap direktori berisi file `README.md` yang memuat rangkuman materi pada minggu tersebut.
+Setiap direktori berisi file `README.md` yang memuat rangkuman materi pada minggu tersebut. Jika materi minggu tersebut memiliki contoh program, file kodenya disimpan di subfolder `kode/`.
 
 ## Format Penulisan
 
