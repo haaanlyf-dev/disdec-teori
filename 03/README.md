@@ -246,3 +246,86 @@ Jika **koordinator gagal** atau **node baru bergabung**, sistem harus **memilih 
 - **Kubernetes** memakai **Raft** melalui **etcd**.
 
 > **Contoh:** Pada cluster database 3 node, jika node *leader* mati, dua node lain melakukan voting dan dalam hitungan detik memilih leader baru, sehingga aplikasi tetap berjalan.
+
+## 8. Contoh Kode
+
+Kode tambahan dari materi minggu 3, disimpan di folder [`kode/`](kode/).
+
+| File | Isi |
+|---|---|
+| [`kode/vclocks.py`](kode/vclocks.py) | Implementasi **Vector Clock** |
+| [`kode/multithreads-example.py`](kode/multithreads-example.py) | Contoh **multithreading** (concurrency) |
+
+### 8.1 `vclocks.py`: Implementasi Vector Clock
+
+Kode ini berisi class `VectorClock` yang menerapkan aturan vector clock dari bagian 5.
+
+| Fungsi | Arti |
+|---|---|
+| `increment()` | Ada event, tambah 1 di spot milik sendiri |
+| `send_message()` | Tambah 1, lalu kirim salinan clock |
+| `receive_message()` | Ambil **max per elemen**, lalu tambah 1 |
+| `happens_before()` | Cek apakah semua elemen ≤ dan minimal satu < |
+| `is_concurrent()` | Cek apakah tidak ada yang terjadi lebih dulu (independen) |
+
+Cara menjalankan:
+```bash
+python kode/vclocks.py
+```
+
+Output:
+```
+P0: [0, 0, 0]
+P1: [0, 0, 0]
+P2: [0, 0, 0]
+P0: [1, 0, 0]
+P0: [2, 0, 0]
+P1: [2, 1, 0]
+P2: [0, 0, 1]
+P1: [2, 2, 0]
+P2: [2, 2, 2]
+VC0 happens before VC1: True
+VC1 happens before VC0: False
+VC0 is concurrent with VC2: False
+```
+
+Penjelasan:
+- P0 melakukan event ([1,0,0]), lalu mengirim pesan ke P1 ([2,0,0]). P1 menerima, mengambil max, lalu menambah 1 → [2,1,0].
+- P2 melakukan event sendiri ([0,0,1]), lalu menerima pesan dari P1 ([2,2,0]) → max = [2,2,1], lalu +1 → [2,2,2].
+- **VC0 [2,0,0] terjadi sebelum VC1 [2,2,0]**: semua elemen ≤ dan ada yang lebih kecil.
+- **VC0 tidak concurrent dengan VC2 [2,2,2]**: VC0 terjadi **sebelum** VC2, karena informasinya diteruskan lewat P1. Hasil ini sesuai dengan catatan pada bagian 5.
+
+> **Perbedaan dengan contoh di slide:** di kode ini proses langsung **menambah 1 setelah menerima pesan**, sedangkan di slide B tetap [2,0,0] setelah menerima. Aturan pada kode adalah versi yang umum dipakai.
+
+### 8.2 `multithreads-example.py`: Contoh Multithreading
+
+Kode ini menjalankan 5 tugas (A–E) yang masing-masing menunggu 5 detik (`time.sleep`, simulasi operasi I/O), tetapi **secara bersamaan** memakai thread.
+- `threading.Thread(...)`: membuat thread.
+- `start()`: menjalankan thread.
+- `join()`: menunggu thread selesai sebelum program lanjut.
+
+Cara menjalankan:
+```bash
+python kode/multithreads-example.py
+```
+
+Output (urutan "finished" bisa berbeda setiap dijalankan):
+```
+Task A starting...
+Task B starting...
+Task C starting...
+Task D starting...
+Task E starting...
+Task E finished after 5s.
+Task D finished after 5s.
+Task C finished after 5s.
+Task B finished after 5s.
+Task A finished after 5s.
+All tasks completed.
+```
+
+Penjelasan:
+- Total waktu hanya **±5 detik**, bukan 25 detik, karena kelima tugas berjalan **bersamaan (concurrent)**.
+- Urutan selesainya **tidak bisa ditebak**. Inilah sebabnya diperlukan **sinkronisasi** dan **mutual exclusion**: jika thread-thread ini mengubah data yang sama (misalnya stok produk), bisa terjadi **race condition** seperti contoh di bagian 1.
+
+> **Analogi:** 5 orang memasak air bersamaan di 5 kompor (5 menit), dibanding 1 orang memasak bergantian di 1 kompor (25 menit).
